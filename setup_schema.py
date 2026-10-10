@@ -140,3 +140,45 @@ print("Created compound index: [('status', 1), ('ends_at', 1)].")
     # 2. Text index: Powers full-text keyword search on titles
 db.auctions.create_index([("title", "text")])
 print("Created text index on 'title'.")
+
+print("\n--- 3. Creating 'bid_ledger' collection with Schema Validation ---")
+    
+ledger_validator = {
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["auction_id", "bidder_id", "amount", "timestamp"],
+        "properties": {
+            "auction_id": {
+                "bsonType": "objectId",
+                "description": "Must reference an auction _id"
+            },
+            "bidder_id": {
+                "bsonType": "objectId",
+                "description": "Must reference a user _id"
+            },
+            "amount": {
+                "bsonType": "double",
+                "minimum": 0.0,
+                "description": "Bid amount must be a positive double"
+            },
+            "timestamp": {
+                "bsonType": "date",
+                "description": "Time the bid was placed"
+            }
+        }
+    }
+}
+
+try:
+    db.create_collection("bid_ledger", validator=ledger_validator)
+    print("Created 'bid_ledger' collection with strict schema validation!")
+except CollectionInvalid:
+    db.command("collMod", "bid_ledger", validator=ledger_validator)
+    print("'bid_ledger' already exists. Updated schema validation rules!")
+# Indexes for bid_ledger
+print("Creating indexes on 'bid_ledger'...")
+# Fast chronological lookup for all bids in an auction
+db.bid_ledger.create_index([("auction_id", 1), ("timestamp", -1)])
+# Fast lookup for all bids placed by a specific user
+db.bid_ledger.create_index([("bidder_id", 1)])
+print("Created indexes on 'bid_ledger'.")
