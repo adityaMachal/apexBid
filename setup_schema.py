@@ -35,7 +35,7 @@ user_validator = {
             },
             "mobile" : {
                 "bsonType" : "string",
-                "pattern" : "^[1-9]{10}$",      #enforce exactly 10 numeric digits
+                "pattern" : "^[0-9]{10}$",      #enforce exactly 10 numeric digits
                 "description" : "Phone number String"
             },
             "balance" : {
