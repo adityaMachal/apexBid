@@ -1,47 +1,37 @@
-import os
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-from pymongo import MongoClient
+"""
+seed_data.py (Phase 2 Runner)
+Populates the database with 10 mock users and 18 diverse auction listings.
+Safe to re-run: clears previous test data before inserting.
+"""
 
-# 1. Load connection string
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
+from db_connection import db
+from data.mock_users import get_mock_users
+from data.mock_auctions import get_mock_auctions
 
-client = MongoClient(MONGO_URI)
-db = client["apexbid_db"]
 
-print("Connected to database. Starting Phase 2: Seeding Data...")
+print("=== Phase 2: Seeding Data ===")
 
-# 2. Reset existing data for a clean run
+# 1. Clear previous test data (delete_many preserves schemas & indexes, unlike drop())
 db.bid_ledger.delete_many({})
 db.auctions.delete_many({})
 db.users.delete_many({})
 print("Cleared previous test data.")
 
+# 2. Insert mock users
+users = get_mock_users()
+user_result = db.users.insert_many(users)
+user_ids = user_result.inserted_ids
+print(f"Inserted {len(user_ids)} users.")
 
-users_data = [
-    {
-        "name": "Alice Johnson",
-        "email": "alice@example.com",
-        "mobile": "9876543210",
-        "balance": 1500.00
-    },
-    {
-        "name": "Bob Smith",
-        "email": "bob@example.com",
-        "mobile": "9123456780",
-        "balance": 800.00
-    },
-    {
-        "name": "Charlie Brown",
-        "email": "charlie@example.com",
-        "mobile": "9988776655",
-        "balance": 350.00
-    }
-]
-user_insert_result = db.users.insert_many(users_data)
-# Save their generated _ids to link them as sellers/bidders
-alice_id = user_insert_result.inserted_ids[0]
-bob_id = user_insert_result.inserted_ids[1]
-charlie_id = user_insert_result.inserted_ids[2]
-print(f"Successfully inserted {len(user_insert_result.inserted_ids)} users!")
+# 3. Insert mock auctions (pass user_ids so auctions can reference sellers/bidders)
+auctions = get_mock_auctions(user_ids)
+auction_result = db.auctions.insert_many(auctions)
+print(f"Inserted {len(auction_result.inserted_ids)} auctions across 4 categories.")
+
+# 4. Summary
+print("\n=== Phase 2 Complete: Database populated with rich test dataset! ===")
+print(f"  Users:    {len(user_ids)}")
+print(f"  Auctions: {len(auction_result.inserted_ids)}")
+print(f"  Categories: Electronics, Collectibles, Gaming, Watches")
+print(f"  Anti-snipe test items: 2 (ending in <2 minutes)")
+print(f"  Ended auctions: 3 (for analytics pipeline)")
