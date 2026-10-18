@@ -151,8 +151,11 @@ python bidding_engine.py
 # Step 4: Run the market analytics aggregation pipeline
 python analytics.py
 
-# Step 5: Run the multi-threaded concurrency race condition test
-python concurrency_test.py
+# Step 5: Run the formal Pytest suite (12 automated tests)
+pytest -v
+
+# Step 6: Generate test code coverage report
+pytest --cov=bidding_engine --cov=analytics --cov-report=term-missing
 ```
 
 ---
