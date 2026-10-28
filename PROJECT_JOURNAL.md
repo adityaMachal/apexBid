@@ -19,13 +19,14 @@
    - [Phase 5: Executive Analytics via Aggregation Pipelines](#phase-5-executive-analytics-via-aggregation-pipelines)
    - [Phase 6: Multi-Threaded Concurrency & Race Condition Benchmark](#phase-6-multi-threaded-concurrency--race-condition-benchmark)
    - [Phase 7: Professionalization of the Test Suite (Pytest Architecture)](#phase-7-professionalization-of-the-test-suite-pytest-architecture)
+   - [Phase 8: Interactive Web Dashboard & Real-Time Simulator](#phase-8-interactive-web-dashboard--real-time-simulator)
 3. [Empirical Verification & Benchmark Results](#3-empirical-verification--benchmark-results)
    - [8-Point Edge-Case Verification Suite](#8-point-edge-case-verification-suite)
    - [Detailed Test-by-Test Deep Dive (All 12 Automated Pytest Cases)](#detailed-test-by-test-deep-dive-all-12-automated-pytest-cases)
    - [10-Thread Concurrency Benchmark Audit](#10-thread-concurrency-benchmark-audit)
    - [3-Stage Aggregation Pipeline Analytics Tables](#3-stage-aggregation-pipeline-analytics-tables)
    - [Pytest & Code Coverage Verification](#pytest--code-coverage-verification)
-4. [Bug Log & Engineering Problem Solving (7 Documented Resolutions)](#4-bug-log--engineering-problem-solving)
+4. [Bug Log & Engineering Problem Solving (9 Documented Resolutions)](#4-bug-log--engineering-problem-solving)
 5. [Viva Voce Technical Defense Compendium (12 High-Yield Questions & Answers)](#5-viva-voce-technical-defense-compendium)
 6. [Git Commit History & Engineering Hygiene](#6-git-commit-history--engineering-hygiene)
 
@@ -50,9 +51,9 @@ ApexBid proves that **native MongoDB engine primitives** eliminate both challeng
 |                                                             ├── analytics.py        (Phase 5)     |
 |  [Infrastructure]                [Professional Test Suite]  └── concurrency_test.py (Phase 6)     |
 |  ├── db_connection.py            ├── tests/conftest.py                                            |
-|  ├── .env                        ├── tests/test_bidding.py                                        |
-|  └── pytest.ini                  ├── tests/test_concurrency.py                                    |
-|                                  └── tests/test_analytics.py                                      |
+|  ├── .env                        ├── tests/test_bidding.py  [Interactive Web Dashboard]           |
+|  └── pytest.ini                  ├── tests/test_concurrency.py ├── app.py           (Phase 8)     |
+|                                  └── tests/test_analytics.py   └── .streamlit/config.toml         |
 +---------------------------------------------------------------------------------------------------+
 ```
 
@@ -226,6 +227,39 @@ For every phase in the engineering lifecycle, this journal documents:
 #### RESULT:
 * **12 out of 12 tests passing in 6.13 seconds.**
 * Core bidding engine achieved **84% statement coverage**.
+
+---
+
+### Phase 8: Interactive Web Dashboard & Real-Time Simulator (Streamlit Architecture)
+
+#### WHAT was built:
+* Developed an executive, full-featured web dashboard in `app.py` utilizing **Streamlit** and **Pandas**.
+* Styled with a custom dark-slate aesthetic (`.streamlit/config.toml`) inspired by modern developer platforms: Dark Charcoal background (`#0B0F19`), Card Containers (`#161E2E`), and Emerald Accents (`#00ED64`).
+* Designed 3 interactive tabs:
+  1. **Tab 1: Live Marketplace & Interactive Bidding Terminal:**
+     - Dynamic category filtering and real-time status filtering (`active`, `ended`, `all`) synchronized against real-time UTC countdown timestamps.
+     - Pulsing high-urgency soft-close badges (`🔥 SOFT-CLOSE (<2m)`) highlighting items nearing deadline.
+     - Live bidder selector with dynamic wallet balance inspection.
+     - Interactive bidding form directly calling `place_bid()` with instant visual feedback and celebration balloons (`st.balloons()`) when anti-sniping extensions are triggered.
+     - Subset Pattern visualizer displaying the embedded `recent_bids` array (capped at 5) for each listing.
+  2. **Tab 2: Executive Analytics Dashboard:**
+     - Top-level KPI cards (Total Platform Revenue, Active Listings, Completed Listings, Registered Bidders).
+     - Live charts and tables rendering the 3 MongoDB Atlas aggregation pipelines directly from `analytics.py` / native database operations (`$group`, `$lookup`, `$bucket`).
+  3. **Tab 3: Multi-Threaded Concurrency Test Simulator:**
+     - In-browser concurrency attack simulator dispatching 10 parallel worker threads via `ThreadPoolExecutor(max_workers=10)` against the 1984 IBM Model M Keyboard.
+     - Real-time tabular output sorting thread latency and proving exactly 1 winner and 9 rejected bids.
+* Integrated Sidebar Admin Utilities:
+  - **"🔄 Reset Seed Data"**: One-click re-seeding of the database with fresh countdown timestamps.
+  - **"🧪 Run Automated Pytest Suite"**: Subprocess-driven execution of the 12 Pytest suites directly from the UI with expandable logs.
+
+#### WHY it was built this way:
+* **Bridging the Terminal-to-Stakeholder Gap:** Command-line logs and terminal benchmarks, while technically rigorous, lack immediate visual impact for project evaluators, recruiters, and clients. An interactive web UI provides undeniable visual proof of database-level state changes.
+* **Real-Time Visual Proof of Algorithmic Extension:** Showing the countdown clock dynamically jump from `<90s` to `>4m` upon bid placement provides instant, visceral proof of the soft-close anti-sniping algorithm.
+* **Demonstrating Zero-ETL Analytics:** Visualizing `$lookup` joins and numerical `$bucket` distributions in Streamlit proves that MongoDB can serve real-time operational analytics without requiring external data warehouses or ETL pipelines.
+
+#### RESULT:
+* Complete interactive dashboard deployed and live at `http://localhost:8501`.
+* Allows non-technical stakeholders to test concurrency, trigger anti-sniping soft-close extensions, switch user personas, and inspect live aggregation pipelines with zero manual command execution.
 
 ---
 
@@ -476,6 +510,8 @@ TOTAL                  57      9    84%
 | **ERR-05** | Test 6 Failure: `Auction has already ended!` | Seed data set an item to expire in 90 seconds. Running the test minutes later caused the clock to expire legitimately. | Added an active deadline refresh (`now + 90s`) immediately preceding Test 6 execution. |
 | **ERR-06** | Test 6 Failure: `Shill bidding violation` | The test fixture configured Diana as the seller of the GPU, but the test script dispatched Diana as the bidder. | Updated bidder in Test 6 to Ethan (`balance: $3,100.00`), correctly demonstrating clean bid acceptance. |
 | **ERR-07** | Pytest Datetime Type Error: `can't compare offset-naive and offset-aware datetimes` | MongoDB BSON returns naive UTC datetimes, while Python `datetime.now(timezone.utc)` creates aware datetimes. | Normalized datetimes with `.replace(tzinfo=timezone.utc)` before comparison in `test_bidding.py`. |
+| **ERR-08** | PyMongo SSL Handshake Timeout: `[SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (SSL alert number 80)` | Atlas firewall rejects unwhitelisted IP connections on port 27017 at the TLS layer. Client's public IP changed or lease expired. | Added public IP to Atlas Network Access IP Whitelist (`0.0.0.0/0` or current IP) and configured `tlsCAFile=certifi.where()` in `db_connection.py`. |
+| **ERR-09** | Dashboard Listing Filter Inconsistency: Active filter displayed expired auctions with `ENDED` badges | Mock dataset seeded 14 days prior had expired `ends_at` timestamps. MongoDB documents retained `status: "active"` while Python evaluated `ends_at <= now`. | Synchronized query filters in `app.py` with real-time UTC timestamps (`{"status": "active", "ends_at": {"$gt": now_utc}}`) and refreshed seed data. |
 
 ---
 
@@ -522,12 +558,20 @@ TOTAL                  57      9    84%
 ## 6. Git Commit History & Engineering Hygiene
 
 ```text
-3a82f1b feat(analytics): implement aggregation pipelines for category sales, leaderboard joins, and price bucketing
-7d19c04 feat(bidding): implement atomic bidding engine with anti-sniping and edge-case test suite
-4e8b212 feat(seed): expand mock dataset to 10 users and 18 auctions across 4 categories
-9c41f7a refactor(schemas): modularize connection and JSON validation schemas
-b201a88 chore(git): ignore python bytecode and cache directories
-5f89e11 feat(schema): add bid_ledger audit collection and complete Phase 1
+62da218 fix(dashboard): synchronize active and ended query filters with real-time deadline timestamps
+0f7f735 fix(connection): configure tlsCAFile with certifi in db_connection
+6f9d62a feat(dashboard): implement interactive Streamlit web dashboard with live bidding simulator and analytics
+2346d6d docs(journal): document comprehensive WHAT-WHY-RESULT technical dossier, test deep-dives, and viva compendium
+4174450 feat(testing): implement production pytest test suite with concurrency benchmarks and coverage
+5a46ac1 feat(analytics): implement aggregation pipelines for category sales, leaderboard joins, and price bucketing
+a24e202 feat(bidding): implement atomic bidding engine with anti-sniping and edge-case test suite
+4dcd2ba feat(seed): expand mock dataset to 10 users and 18 auctions across 4 categories
+979b364 refactor(schemas): modularize connection and JSON validation schemas
+4e96152 chore(git): ignore python bytecode and cache directories
+bc5ada6 fix(schema): update mobile regex pattern and add initial user seeding
+ee85aa2 feat(schema): add bid_ledger audit collection and complete Phase 1
+ed08bca feat(schema): implement strict JSON validation and indexes for users and auctions
+29c2492 chore: verifying connection with Atlas DB
 ```
 
 ---
