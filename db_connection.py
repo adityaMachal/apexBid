@@ -5,6 +5,7 @@ All scripts import `db` from here instead of duplicating connection logic.
 """
 
 import os
+import certifi
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
@@ -15,5 +16,5 @@ MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise ValueError("MONGO_URI not found. Check your .env file!")
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["apexbid_db"]
