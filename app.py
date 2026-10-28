@@ -149,19 +149,25 @@ with tab1:
     with col_filter3:
         search_query = st.text_input("🔍 Search Listings", placeholder="e.g. Keyboard, Camera, GPU")
 
+    now_utc = datetime.now(timezone.utc)
+
     # Build MongoDB Query Filter
     mongo_filter = {}
     if cat_filter != "All Categories":
         mongo_filter["category"] = cat_filter
-    if status_filter != "All":
-        mongo_filter["status"] = status_filter
+    if status_filter == "active":
+        mongo_filter["status"] = "active"
+        mongo_filter["ends_at"] = {"$gt": now_utc}
+    elif status_filter == "ended":
+        mongo_filter["$or"] = [
+            {"status": "ended"},
+            {"ends_at": {"$lte": now_utc}}
+        ]
     if search_query:
         mongo_filter["title"] = {"$regex": search_query, "$options": "i"}
 
     # Query Auctions using Compound Index: status + ends_at
     auctions = list(db.auctions.find(mongo_filter).sort([("status", 1), ("ends_at", 1)]))
-
-    now_utc = datetime.now(timezone.utc)
 
     st.markdown(f"**Found {len(auctions)} listings matching criteria.**")
 
@@ -224,7 +230,7 @@ with tab1:
     st.subheader("🎯 Interactive Bidding Terminal")
     st.caption("Test atomic concurrency guards, anti-sniping dynamic soft-close, and wallet validation live:")
 
-    active_auctions = list(db.auctions.find({"status": "active"}).sort("ends_at", 1))
+    active_auctions = list(db.auctions.find({"status": "active", "ends_at": {"$gt": now_utc}}).sort("ends_at", 1))
     auction_picker = {f"{a['title']} (Current: ${a['current_bid']:,.2f})": a for a in active_auctions}
 
     if not auction_picker:
@@ -281,8 +287,9 @@ with tab2:
     rev_res = list(db.auctions.aggregate(total_rev_pipeline))
     tot_rev = rev_res[0]["total"] if rev_res else 0.0
 
-    active_count = db.auctions.count_documents({"status": "active"})
-    ended_count = db.auctions.count_documents({"status": "ended"})
+    now_tab2 = datetime.now(timezone.utc)
+    active_count = db.auctions.count_documents({"status": "active", "ends_at": {"$gt": now_tab2}})
+    ended_count = db.auctions.count_documents({"$or": [{"status": "ended"}, {"ends_at": {"$lte": now_tab2}}]})
     user_count = db.users.count_documents({})
 
     m1, m2, m3, m4 = st.columns(4)
