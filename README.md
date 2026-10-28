@@ -156,6 +156,9 @@ pytest -v
 
 # Step 6: Generate test code coverage report
 pytest --cov=bidding_engine --cov=analytics --cov-report=term-missing
+
+# Step 7: Launch the interactive Streamlit web dashboard
+streamlit run app.py
 ```
 
 ---
